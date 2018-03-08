@@ -1,0 +1,163 @@
+<!doctype html>
+<!--suppress JSAnnotator -->
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { scroll:no; margin: 0; padding: 0; box-sizing: border-box; }
+      body {scroll:no; font: 13px Helvetica, Arial; display:flex; flex-direction:column; background-color: darkgray; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%;}
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0;}
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+      #messages {
+          margin-bottom: 40px;
+            height:90%;
+          min-width:50%;
+          max-width:50%;
+          min-height: 90%;
+          max-height:90%;
+          flex-basis:auto;
+          flex-grow:1;
+      }
+        #header {
+            display:flex;
+            flex-direction: row;
+            justify-content: space-around;
+        }
+        #display{
+            display:flex;
+            flex-direction:row;
+            padding: 10px;
+
+        }
+      ul{
+        float: left;
+          background-color: white;
+      }
+      nav ul{
+          overflow:hidden;
+          overflow-y: scroll;
+      }
+      #users {
+        padding: 10px;
+        background: #ddd;
+          min-width:50%;
+          max-width:50%;
+          min-height: 90%;
+          max-height:90%;
+          flex-basis:auto;
+          flex-grow:1;
+      }
+    </style>
+  </head>
+  <body>
+        <div id="header">
+            <div>
+                <h1 id = "mynickdisplay">  </h1>
+            </div>
+            <div>
+                <h1> Online users</h1>
+            </div>
+        </div>
+        <div id="display">
+
+            <ul id="messages"></ul>
+
+            <ul id="users"></ul>
+        </div>
+        <div id = "input">
+          <form action="">
+            <input id="m" autocomplete="off" /><button>Send</button>
+          </form>
+          <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+          <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+          <script>
+            $(function () {
+
+              var socket = io();
+              $('form').submit(function(){
+                socket.emit('chat message', id + ';' + $('#m').val());
+                $('#m').val('');
+                return false;
+              });
+              socket.on('chat message', function(msg){
+                  let msgObj = JSON.parse(msg);
+                  let time = String(msgObj.hours) + ":" + String(msgObj.mins);
+                  let uname = msgObj.nick;
+                  let message = msgObj.message;
+                  let msgColor = String(msgObj.color);
+                  let colorCommand = "<span style=color:" + msgColor + ">";
+
+                    if (id == msgObj.uid){
+                        $('#messages').append($("<li><b>" + time + colorCommand + " " + uname + ": </span>" + message + "</b></li>"));
+                    }else {
+                        $('#messages').append($("<li>" + time + colorCommand + uname + ": </span>" + message + "</li>"));
+                    }
+                  window.scrollTo(0, document.body.scrollHeight);
+              });
+              socket.on('new user', function(users){
+
+                  $('#users').empty();
+                  for (let i = 0; i < users.length; i++){
+                      console.log("DEBUG1:" + users[i].uid);
+                      console.log("DEBUG2:" + id);
+                        $('#users').append($('<li>').text(users[i].unick));
+                        if (String(users[i].uid) === String(id)){
+                            //this is my nickname, append to header
+                            console.log("DEBUG: adding my nick field");
+                            $('#mynickdisplay').empty();
+                            $('#mynickdisplay').append("You are: " + users[i].unick);
+                            console.log("DEBUG: reached bottom");
+                        }
+                  }
+                 window.scrollTo(0, document.body.scrollHeight);
+              });
+              socket.on('connected chat log', function(messages){
+                 for (let i = 0; i < messages.length; i++){
+                     let msgObj = messages[i];
+                     let time = String(msgObj.hours) + ":" + String(msgObj.mins);
+                     let uname = msgObj.nick;
+                     let message = msgObj.message;
+                     let msgColor = String(msgObj.color);
+                     let colorCommand = "<span style=color:" + msgColor + ">";
+
+                     if (id == msgObj.uid){
+                         $('#messages').append($("<li><b>" + time + colorCommand + " " + uname + ": </span>" + message + "</b></li>"));
+                     }else {
+                         $('#messages').append($("<li>" + time + colorCommand + " " + uname + ": </span>" + message + "</li>"));
+                     }
+                     window.scrollTo(0, document.body.scrollHeight);
+                 }
+              });
+              let id = -1;
+              //NOTE: start comment here to disable cookies
+
+              var date = new Date();
+              id = date.getTime();
+              socket.emit('new user connect', id);
+
+              //NOTE: end comment here to disable cookies
+                /*
+                //NOTE: start comment here to enable cookies
+              if (document.cookie.includes("myid=")){
+                  //Cookie already exists, set id to this
+                  //NOTE: this line of code comes from https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie
+                  let storedID = document.cookie.replace(/(?:(?:^|.*;\s*)myid\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+                  id = storedID;
+                  socket.emit('user reconnect', id);
+              } else {
+                  var date = new Date();
+                  id = date.getTime();
+                  document.cookie = "myid="+id;
+                  socket.emit('new user connect', id);
+              }
+              //NOTE: end comment here to enable cookies
+                */
+            });
+          </script>
+        </div>
+  </body>
+</html>
